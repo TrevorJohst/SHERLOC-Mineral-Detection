@@ -27,12 +27,13 @@
     <Compile Include="SHERLOC_Mineral_Detection.py" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Results\" />
-    <Folder Include="Noise\" />
+    <Folder Include="User\" />
+    <Folder Include="User\Results\" />
+    <Folder Include="User\Noise\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Noise\Noise413_Rays_Removed.csv" />
-    <Content Include="Settings.csv" />
+    <Content Include="User\Noise\Noise413_Rays_Removed.csv" />
+    <Content Include="User\Settings.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

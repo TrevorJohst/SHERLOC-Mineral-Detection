@@ -18,7 +18,8 @@ class MainApp:
         root: a tkinter tk object
         """
         # Unpack user settings
-        settings_path = os.path.join(os.getcwd(), "Settings.csv")
+        user_path = os.path.join(os.getcwd(), "User")
+        settings_path = os.path.join(user_path, "Settings.csv")
         settings_df = pd.read_csv(settings_path)
 
         # Parameter constants
@@ -32,8 +33,8 @@ class MainApp:
         self.MINERAL_NAME = settings_df["MINERAL_NAME"][0]
 
         # Hard coded noise dataframe locations
-        folder_path = os.path.join("Noise", settings_df["NOISE_SAMPLE"][0] + ".csv")
-        folder_path = os.path.join(os.getcwd(), folder_path)
+        folder_path = os.path.join(user_path, "Noise")
+        folder_path = os.path.join(folder_path, settings_df["NOISE_SAMPLE"][0] + ".csv")
         self.noise_df = pd.read_csv(folder_path)
 
         # Result dataframes setup
@@ -44,7 +45,8 @@ class MainApp:
             "Sigma" : [],
             "FWHM" : [],
             "R^2" : [],
-            "SNR" : []
+            "Stowed SNR" : [],
+            "Silent SNR" : []
         }
 
         self.approved_result_df = pd.DataFrame(result_dict)
@@ -111,6 +113,7 @@ class MainApp:
         self.baseline_button.config(state=state)
         self.cosmic_button.config(state=state)
         self.peakfit_button.config(state=state)
+        self.double_peakfit_button.config(state=state)
         self.approve_button.config(state=state)
         self.deny_button.config(state=state)
 
@@ -118,7 +121,7 @@ class MainApp:
         """
         Helper function that updates the data label with current information.
         """
-        self.data_label.config(text=f"CURRENT DATA\n\nHeight: {round(self.peak_params[0], 1)}\n\nMean: {round(self.peak_params[1], 1)}\n\nSigma: {round(self.peak_params[2], 1)}\n\nFWHM: {round(self.FWHM, 1)}\n\nR^2: {round(self.r_squared, 4)}\n\nSNR: {round(self.SNR, 2)}\n\nSampling: {self.sampling}\n\nSmoothing: {self.smoothing}\n\n")
+        self.data_label.config(text=f"CURRENT DATA\n\nHeight: {round(self.peak_params[0], 1)}\n\nMean: {round(self.peak_params[1], 1)}\n\nSigma: {round(self.peak_params[2], 1)}\n\nFWHM: {round(self.FWHM, 1)}\n\nR^2: {round(self.r_squared, 4)}\n\nStow SNR: {round(self.SNR_stowed, 2)}\n\nSilent SNR: {round(self.SNR_silent, 2)}\n\nSampling: {self.sampling}\n\nSmoothing: {self.smoothing}\n\n")
 
 
     def append_df(self, point_index):
@@ -135,7 +138,8 @@ class MainApp:
             "Sigma" : self.peak_params[2],
             "FWHM" : self.FWHM,
             "R^2" : self.r_squared,
-            "SNR" : self.SNR
+            "Stowed SNR" : self.SNR_stowed,
+            "Silent SNR" : self.SNR_silent
         }
         new_row = pd.DataFrame.from_dict(new_row, orient='index').T
 
@@ -258,7 +262,7 @@ class MainApp:
         selection_frame.grid(row=0, column=2, rowspan=2, padx=0, pady=10, sticky="e")
 
         # Info display above the selection buttons
-        self.data_label = tk.Label(selection_frame, text="CURRENT DATA\n\nHeight:\n\nMean:\n\nSigma:\n\nFWHM:\n\nR^2\n\nSNR:\n\nSampling:\n\nSmoothing:\n\n", bg="#2B2B2B", fg="white", font=("Arial", 10), width=15, justify='left', anchor='w', wraplength=100)
+        self.data_label = tk.Label(selection_frame, text="CURRENT DATA\n\nHeight:\n\nMean:\n\nSigma:\n\nFWHM:\n\nR^2\n\nStow SNR:\n\nSilent SNR:\n\nSampling:\n\nSmoothing:\n\n", bg="#2B2B2B", fg="white", font=("Arial", 9), width=20, justify='left', anchor='w', wraplength=100)
         self.data_label.pack(side=tk.TOP)
 
         # Selection button handling
@@ -268,6 +272,8 @@ class MainApp:
         self.cosmic_button.pack(side=tk.TOP, anchor='w')
         self.peakfit_button = tk.Button(selection_frame, text="Peakfit", command=self.peakfit_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
         self.peakfit_button.pack(side=tk.TOP, anchor='w')
+        self.double_peakfit_button = tk.Button(selection_frame, text="Double Peakfit", command=self.double_peakfit_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.double_peakfit_button.pack(side=tk.TOP, anchor='w')
         self.approve_button = tk.Button(selection_frame, text="Approve", command=self.approve_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
         self.approve_button.pack(side=tk.TOP, anchor='w')
         self.deny_button = tk.Button(selection_frame, text="Deny", command=self.deny_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
@@ -286,8 +292,8 @@ class MainApp:
         self.entry_box.bind('<Return>', lambda event: self.entry_input_ready.set(True))
 
         # Create the PlotObjects inside the main frame
-        self.baseline_unzoomed = Plots.BaselinePlot(self.main_frame)
-        self.baseline_zoomed = Plots.ZoomedBaselinePlot(self.main_frame)
+        self.baseline_display = Plots.BaselinePlot(self.main_frame)
+        self.noise_display = Plots.NoisePlot(self.main_frame)
         self.cosmic = Plots.CosmicRayPlot(self.main_frame)
         self.peakfit = Plots.PeakfitPlot(self.main_frame)
 
@@ -325,6 +331,7 @@ class MainApp:
         self.toggle_buttons(tk.DISABLED)
 
         for i, spectrum_raw in enumerate(self.spectrums):
+            spectrum_raw = pd.to_numeric(spectrum_raw)
             # Initialize the cosmic plot initial settings
             self.cosmic_display_lower = self.ind1
             self.cosmic_display_upper = self.ind2
@@ -334,6 +341,9 @@ class MainApp:
             # Set the value of our current mhw and shw
             self.sampling = self.MHW
             self.smoothing = self.SHW
+
+            # Store current noise
+            self.cur_noise = self.noise_df[f"Point {i}"]
         
             # Remove stowed arm noise median
             self.spectrum_stowed_arm_removed = Auto.stowed_arm_subtraction(spectrum_raw, self.noise_sample)
@@ -345,21 +355,22 @@ class MainApp:
             self.peak_params, self.FWHM, self.r_squared = Auto.perform_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.center)
         
             # Calculate SNR of the fit
-            self.SNR = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.noise_sample, self.peak_params[0], self.ind1, self.ind2)
+            self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+            self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
         
             # Determine if the point should be approved
-            self.approved = (self.SNR > self.SNR_THRESHOLD and self.r_squared > self.R_SQUARED_THRESHOLD 
+            self.approved = (self.SNR_stowed > self.SNR_THRESHOLD and self.r_squared > self.R_SQUARED_THRESHOLD 
                             and self.FWHM > self.FWHM_MIN and self.FWHM < self.FWHM_MAX
                             and self.peak_params[1] > self.center - self.CENTER_RANGE
                             and self.peak_params[1] < self.center + self.CENTER_RANGE)
 
-            if self.display_func(self.SNR, self.r_squared, self.FWHM):
+            if self.display_func(self.SNR_stowed, self.r_squared, self.FWHM):
                 # Enable update buttons
                 self.toggle_buttons(tk.NORMAL)
 
                 # Update the plots
-                self.baseline_unzoomed.update_data(self.ramanshift, self.spectrum, self.baseline)
-                self.baseline_zoomed.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+                self.baseline_display.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+                self.noise_display.update_data(self.ramanshift, self.spectrum, self.cur_noise, self.center)
                 self.cosmic.update_data(self.ramanshift, self.spectrum_stowed_arm_removed, self.cosmic_display_lower, self.cosmic_display_upper, self.cosmic_lower_index, self.cosmic_upper_index)
                 self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2)
 
@@ -375,7 +386,7 @@ class MainApp:
 
             # Update the progress bar value and label text
             self.progress_bar["value"] = i + 1
-            self.progress_label.config(text=f"  Point {i}/99")
+            self.progress_label.config(text=f"  Point {i + 1}/99")
 
         # Export dataframes
         self.export_dfs()
@@ -405,11 +416,12 @@ class MainApp:
         self.peak_params, self.FWHM, self.r_squared = Auto.perform_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.center)
         
         # Calculate SNR of the fit
-        self.SNR = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.noise_sample, self.peak_params[0], self.ind1, self.ind2)
+        self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+        self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
 
         # Update the plots
-        self.baseline_unzoomed.update_data(self.ramanshift, self.spectrum, self.baseline)
-        self.baseline_zoomed.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+        self.baseline_display.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+        self.noise_display.update_data(self.ramanshift, self.spectrum, self.cur_noise, self.center)
         self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2)
 
         # Update data
@@ -457,11 +469,12 @@ class MainApp:
             self.peak_params, self.FWHM, self.r_squared = Auto.perform_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.center)
         
             # Calculate SNR of the fit
-            self.SNR = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.noise_sample, self.peak_params[0], self.ind1, self.ind2)
+            self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+            self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
             
             # Update plots
-            self.baseline_unzoomed.update_data(self.ramanshift, self.spectrum, self.baseline)
-            self.baseline_zoomed.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+            self.baseline_display.update_data(self.ramanshift, self.spectrum, self.baseline, self.ind1, self.ind2)
+            self.noise_display.update_data(self.ramanshift, self.spectrum, self.cur_noise, self.center)
             self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2)
 
             # Update data
@@ -553,7 +566,8 @@ class MainApp:
         self.FWHM = WIDTH_APPROXIMATION * self.peak_params[2]
 
         # Calculate SNR of the fit
-        self.SNR = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.noise_sample, self.peak_params[0], self.ind1, self.ind2)
+        self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+        self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
 
         # Update the graph
         self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2)
@@ -568,6 +582,141 @@ class MainApp:
             # Re-enable the buttons and clear entry tag
             self.entry_label.config(text="\n")
             self.toggle_buttons(tk.NORMAL)
+
+    def double_peakfit_click(self, original_settings=None, other_peak_params=None):
+        # Local constants
+        WIDTH_APPROXIMATION = 2.35
+        R_SQUARED_CALC_RANGE = 2
+
+        # Store original settings as needed
+        if original_settings is None:
+            stored = self.peak_params.copy()
+        else:
+            stored = original_settings
+            
+        # Disable buttons while updating
+        self.toggle_buttons(tk.DISABLED)
+
+        # Collect a second center as needed and perform preliminary fit
+        other_params = [0, 0, 0]
+        if other_peak_params is None:
+            other_center = float(self.request_input("Other Peak:", lambda x: x.replace('.', '', 1).isdigit()))
+
+            # Perform a double peak fit, update the graphs and data
+            self.peak_params, other_params, self.FWHM, self.r_squared = Auto.perform_double_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.center, other_center)
+            self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+            self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
+            self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2, other_params)
+            self.update_data()
+
+        else:
+            other_params = other_peak_params
+
+        focus_left = self.peak_params[1] < other_params[1]
+        if focus_left:
+            left_params = self.peak_params
+            right_params = other_params
+        else:
+            left_params = other_params
+            right_params = self.peak_params
+
+        # Collect a selection and handle it
+        selection = self.request_input("(A)pprove\n(M)odify\n(E)xit:", lambda x: x.upper() in ["A", "M", "E"]).upper()
+        
+        loop = True
+        if selection == "A":
+            loop = False
+
+        elif selection == "M":
+            # Determine which peak to modify
+            peak_selection = self.request_input("(L)eft\n(R)ight:", lambda x: x.upper() in ["L", "R"]).upper()
+
+            # Collect a modification selection and value
+            modify = self.request_input("(H)eight\n(M)ean\n(S)igma:", lambda x: x.upper() in ["H", "M", "S"]).upper()
+            value = float(self.request_input("Value:", lambda x: x.replace('.', '', 1).isdigit()))
+
+            # Update the appropriate parameters
+            if (peak_selection == "L" and focus_left) or (peak_selection == "R" and not focus_left):
+                if modify == "H":
+                    self.peak_params[0] = value
+                elif modify == "M":
+                    self.peak_params[1] = value
+                else:
+                    self.peak_params[2] = value
+            else:
+                if modify == "H":
+                    other_params[0] = value
+                elif modify == "M":
+                    other_params[1] = value
+                else:
+                    other_params[2] = value
+
+        else:
+            # Reset peak parameters back to original
+            self.peak_params[0] = stored[0]
+            self.peak_params[1] = stored[1]
+            self.peak_params[2] = stored[2]        
+            
+            # Narrow down x and y values to ones surrounding the peak
+            ind_fit = (self.ramanshift > self.peak_params[1] - self.peak_params[2]*R_SQUARED_CALC_RANGE) & (self.ramanshift < self.peak_params[1] + self.peak_params[2]*R_SQUARED_CALC_RANGE)
+            peak_ramanshift = self.ramanshift[ind_fit]
+            peak_spectrum = self.spectrum[ind_fit]
+
+            # Calculate R-Squared
+            residuals = peak_spectrum - Helper.gauss(peak_ramanshift, self.peak_params[0], self.peak_params[1], self.peak_params[2])
+            ss_res = np.sum(residuals**2)
+            ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
+            self.r_squared = 1 - (ss_res / ss_tot) if (ss_res / ss_tot) != 0 else 0
+            
+            # Calculate FWHM
+            self.FWHM = WIDTH_APPROXIMATION * self.peak_params[2]
+
+            # Calculate SNR of the fit
+            self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+            self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
+
+            # Update the graph
+            self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2)
+
+            # Update data
+            self.update_data()
+
+            # Re-enable the buttons and clear entry tag
+            self.entry_label.config(text="\n")
+            self.toggle_buttons(tk.NORMAL)
+
+            return
+
+        # Narrow down x and y values to ones surrounding the peak
+        ind_fit = (self.ramanshift > left_params[1] - left_params[2]*R_SQUARED_CALC_RANGE) & (self.ramanshift < right_params[1] + right_params[2]*R_SQUARED_CALC_RANGE)
+        peak_ramanshift = self.ramanshift[ind_fit]
+        peak_spectrum = self.spectrum[ind_fit]
+
+        # Calculate R-Squared
+        residuals = peak_spectrum - Helper.double_gauss(peak_ramanshift, self.peak_params[0], self.peak_params[1], self.peak_params[2], other_params[0], other_params[1], other_params[2])
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
+        self.r_squared = 1 - (ss_res / ss_tot) if (ss_res / ss_tot) != 0 else 0
+            
+        # Calculate FWHM
+        self.FWHM = WIDTH_APPROXIMATION * self.peak_params[2]
+
+        # Calculate SNR of the fit
+        self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.center)
+        self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
+
+        # Update the graph
+        self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2, other_params)
+
+        # Update data
+        self.update_data()
+        
+        if loop:
+            self.double_peakfit_click(stored, other_params)
+        else:
+            self.entry_label.config(text="\n")
+            self.toggle_buttons(tk.NORMAL)
+
 
     def approve_click(self):
         # Approve the point and unlock the loop after disabling buttons again
@@ -596,7 +745,8 @@ class MainApp:
         folder_count = 1
 
         # Create a result directory if needed
-        result_directory = os.path.join(os.getcwd(), "Results")
+        result_directory = os.path.join(os.getcwd(), "User")
+        result_directory = os.path.join(result_directory, "Results")
         result_directory = os.path.join(result_directory, self.MINERAL_NAME)
         if not os.path.exists(result_directory):
             os.makedirs(result_directory)

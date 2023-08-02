@@ -35,7 +35,7 @@ def baselining(y_data, mhw, shw):
         spectrum[i] = 0
     
     #Generate a baseline using pybaselines and subtract it from the spectrum
-    baseline = pybaselines.smooth.swima(spectrum, mhw, shw)[0]
+    baseline = pybaselines.smooth.swima(spectrum, max_half_window=mhw, smooth_half_window=shw)[0]
     spectrum_baseline_removed = spectrum - baseline
         
     return baseline, spectrum_baseline_removed  
@@ -91,18 +91,19 @@ def perform_peakfit(x_data, y_data, ind1, ind2, center):
         
     return params, FWHM, r_squared
 
-def perform_double_peakfit(x_data, y_data, ind1, ind2, center1, center2):
+def perform_double_peakfit(x_data, y_data, ind1, ind2, focus_center, other_center):
     """
-    Attempts to fit a double gaussian distribution to the given spectrum. Will return a tuple of fit parameters
-    (amplitude1, mean1, sigma1, amplitude2, mean2, sigma2), full width at half max 1, full width at half max 2,
-    and R squared if the fitting is successfull. If it is not, the function will return all zeros.
+    Attempts to fit a double gaussian distribution to the given spectrum. Will return tuples of fit parameters
+    (amplitude, mean, sigma) for the focus peak, (amplitude, mean, sigma) for the other peak, 
+    focus full width at half max, and R squared if the fitting is successfull. 
+    If it is not, the function will return all zeros.
 
     x_data: x-axis of the data, the ramanshift
     y_data: y-axis of the data, the spectrum intensity
     ind1: lower index of the range to search for a peak within
     ind2: upper index of the range to search for a peak within
-    center1: estimate for the center of our leftmost spectrum peak
-    center2: estimate for the center of our rightmost spectrum peak
+    focus_center: estimate for the center of our focused spectrum peak
+    other_center: estimate for the center of our other spectrum peak
     """
 
     #Local constants
@@ -111,10 +112,14 @@ def perform_double_peakfit(x_data, y_data, ind1, ind2, center1, center2):
     R_SQUARED_CALC_RANGE = 2
     
     #Swap the centers if they were passed in the wrong order
-    if center2 < center1:
-        temp_center = center1
-        center1 = center2
-        center2 = temp_center
+    if other_center < focus_center:
+        center1 = other_center
+        center2 = focus_center
+        focus_left = False
+    else:
+        center1 = focus_center
+        center2 = other_center
+        focus_left = True
     
     #Isolate the values that fit within the specified indices and truncate both x and y to only include that data
     ind_fit = (x_data > ind1) & (x_data < ind2)
@@ -152,26 +157,46 @@ def perform_double_peakfit(x_data, y_data, ind1, ind2, center1, center2):
     ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
     r_squared = 1 - (ss_res / ss_tot) if (ss_res / ss_tot) != 0 else 0
         
-    return params, FWHM1, FWHM2, r_squared
+    if focus_left:
+        return [fit_a1, fit_mu1, fit_sigma1], [fit_a2, fit_mu2, fit_sigma2], FWHM1, r_squared
+    else:
+        return [fit_a2, fit_mu2, fit_sigma2], [fit_a1, fit_mu1, fit_sigma1], FWHM2, r_squared
 
-def calculate_SNR_stowed_arm(x_data, noise_intensity, fit_a, ind1, ind2):
+def calculate_SNR_stowed_arm(x_data, noise_intensity, fit_a, center):
     """
     Calculates and returns the signal-to-noise ratio for the given data using a stowed arm noise scan.
     
     x_data: x-axis of the data, the ramanshift
     noise_intensity: numpy array of noise
     fit_a: amplitude of our normal curve we want to compare the noise to
-    ind1: lower index of the range to characterize noise within
-    ind2: upper index of the range to characterize noise within
+    center: location of the peak center
     """
     
     #Narrow the noise down to the region around our scan
-    delta_ind = ind2 - ind1
-    ind_SNR = (x_data > ind1 - delta_ind) & (x_data < ind2 + delta_ind)
+    ind_SNR = (x_data > max(center - 200, 700)) & (x_data < center + 200)
     noise = noise_intensity[ind_SNR]
     
     #Calculate standard deviation of the noise and use it to find signal-noise ratio
     sigmay = np.std(noise)
+    SNR = fit_a / sigmay
+        
+    return SNR
+
+def calculate_SNR_silent_region(x_data, y_data, fit_a):
+    """
+    Calculates and returns the signal-to-noise ratio for the given data using the silent region.
+    
+    x_data: x-axis of the data, the ramanshift
+    y_data: y-axis of the data, the spectrum intensity
+    fit_a: amplitude of our normal curve we want to compare the noise to
+    """
+    
+    #Isolate all x values that fall within the silent region
+    ind_silent = (x_data > 2000) & (x_data < 2100)
+    spectrum = y_data[ind_silent]
+    
+    #Calculate standard deviation of the noise and use it to find signal-noise ratio
+    sigmay = np.std(spectrum)
     SNR = fit_a / sigmay
         
     return SNR
