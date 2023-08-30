@@ -1,6 +1,6 @@
 ﻿import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from abc import ABC, abstractmethod
 
 import Helper
@@ -106,7 +106,9 @@ class NoisePlot(PlotObject):
 
         self.ax_right = self.plot_area.twinx()
         self.ax_right.tick_params(axis='y', colors="#03DAC5", which='both')
+        self.ax_right.set_yticks([])
         self.bottom_ax_right = self.bottom_plot_area.twinx()
+        self.bottom_ax_right.set_yticks([])
         self.bottom_ax_right.tick_params(axis='y', colors="#03DAC5", which='both')
         
         # Create a canvas to display the plot
@@ -160,8 +162,6 @@ class CosmicRayPlot(PlotObject):
     def __init__(self, master):
         self.title = "COSMIC RAY REMOVAL"
         super().__init__(master)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, master, pack_toolbar=False)
-        self.toolbar.update()
         self.canvas.get_tk_widget().grid(row=0, column=1, padx=0, ipadx=0, pady=20)
         self.ax_top = self.plot_area.twiny()
         self.ax_top.tick_params(axis='x', colors="#B00020", which='both', pad=50, bottom=False, top=False, rotation=90)
@@ -175,7 +175,6 @@ class CosmicRayPlot(PlotObject):
         lower_ray_index: lower x value index of the cosmic ray
         upper_ray_index: upper x value index of the cosmic ray
         """
-        self.toolbar.update()
         # Isolate all x values that fall within the indices
         ind = (ramanshift > lower_display) & (ramanshift < upper_display)
 

@@ -24,10 +24,13 @@
     <Compile Include="Auto.py" />
     <Compile Include="Helper.py" />
     <Compile Include="Plots.py" />
+    <Compile Include="Results.py" />
     <Compile Include="SHERLOC_Mineral_Detection.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="User\" />
+    <Folder Include="User\Data\" />
+    <Folder Include="User\Visuals\" />
     <Folder Include="User\Results\" />
     <Folder Include="User\Noise\" />
   </ItemGroup>

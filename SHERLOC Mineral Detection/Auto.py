@@ -43,8 +43,8 @@ def baselining(y_data, mhw, shw):
 def perform_peakfit(x_data, y_data, ind1, ind2, center):
     """
     Attempts to fit a gaussian distribution to the given spectrum. Will return a tuple of fit parameters
-    (amplitude, mean, sigma), full width at half max, and R squared if the fitting is successfull. If it
-    is not, the function will return all zeros.
+    (amplitude, mean, sigma), full width at half max, R squared, and the covariance matrix if the fitting is 
+    successfull. If it is not, the function will return all zeros.
 
     x_data: x-axis of the data, the ramanshift
     y_data: y-axis of the data, the spectrum intensity
@@ -68,9 +68,10 @@ def perform_peakfit(x_data, y_data, ind1, ind2, center):
     
     #Try to fit the curve to our data and store parameters if it works
     try:
-        params = curve_fit(Helper.gauss, ramanshift, spectrum, p0=p0)[0]
+        params, cov = curve_fit(Helper.gauss, ramanshift, spectrum, p0=p0)
     except:
         params = [0, 0, 0]
+        cov = np.zeros((3, 3))
 
     #Extract the fitted curve parameters and caluclate full width at half maximum (FWHM)
     fit_a = params[0]
@@ -84,12 +85,15 @@ def perform_peakfit(x_data, y_data, ind1, ind2, center):
     peak_spectrum = y_data[ind_fit]
     
     #Calculate R-Squared
-    residuals = peak_spectrum - Helper.gauss(peak_ramanshift, fit_a, fit_mu, fit_sigma)
-    ss_res = np.sum(residuals**2)
-    ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
-    r_squared = 1 - (ss_res / ss_tot) if (ss_res / ss_tot) != 0 else 0
+    if np.size(peak_spectrum) != 0:
+        residuals = peak_spectrum - Helper.gauss(peak_ramanshift, fit_a, fit_mu, fit_sigma)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+    else:
+        r_squared = 0
         
-    return params, FWHM, r_squared
+    return params, FWHM, r_squared, cov
 
 def perform_double_peakfit(x_data, y_data, ind1, ind2, focus_center, other_center):
     """
@@ -131,9 +135,10 @@ def perform_double_peakfit(x_data, y_data, ind1, ind2, focus_center, other_cente
     
     #Try to fit the curve to our data and store parameters if it works
     try:
-        params = curve_fit(Helper.double_gauss, ramanshift, spectrum, p0=p0)[0]
+        params, cov = curve_fit(Helper.double_gauss, ramanshift, spectrum, p0=p0)
     except:
         params = [0, 0, 0, 0, 0, 0]
+        cov = np.zeros((6, 6))
 
     #Extract the fitted curve parameters and caluclate full width at half maximum (FWHM)
     fit_a1 = params[0]
@@ -152,15 +157,18 @@ def perform_double_peakfit(x_data, y_data, ind1, ind2, focus_center, other_cente
     peak_spectrum = y_data[ind_fit]
     
     #Calculate R-Squared
-    residuals = peak_spectrum - Helper.double_gauss(peak_ramanshift, fit_a1, fit_mu1, fit_sigma1, fit_a2, fit_mu2, fit_sigma2)
-    ss_res = np.sum(residuals**2)
-    ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
-    r_squared = 1 - (ss_res / ss_tot) if (ss_res / ss_tot) != 0 else 0
+    if np.size(peak_spectrum) != 0:
+        residuals = peak_spectrum - Helper.double_gauss(peak_ramanshift, fit_a1, fit_mu1, fit_sigma1, fit_a2, fit_mu2, fit_sigma2)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((peak_spectrum - np.mean(peak_spectrum))**2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+    else:
+        r_squared = 0
         
     if focus_left:
-        return [fit_a1, fit_mu1, fit_sigma1], [fit_a2, fit_mu2, fit_sigma2], FWHM1, r_squared
+        return [fit_a1, fit_mu1, fit_sigma1], [fit_a2, fit_mu2, fit_sigma2], FWHM1, r_squared, cov[:3, :3]
     else:
-        return [fit_a2, fit_mu2, fit_sigma2], [fit_a1, fit_mu1, fit_sigma1], FWHM2, r_squared
+        return [fit_a2, fit_mu2, fit_sigma2], [fit_a1, fit_mu1, fit_sigma1], FWHM2, r_squared, cov[3:, 3:]
 
 def calculate_SNR_stowed_arm(x_data, noise_intensity, fit_a, center):
     """
