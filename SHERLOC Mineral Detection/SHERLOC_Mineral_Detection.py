@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import math
 import os
+import platform
 import threading
 from collections import defaultdict
 
@@ -19,6 +20,24 @@ class MainApp:
 
         root: a tkinter tk object
         """
+        # Set screen size to a 16:8 aspect ratio or 1920x1080 whichever is smaller      
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        aspect_ratio = 16/8
+        height = min(root.winfo_screenheight(), int(root.winfo_screenwidth() / aspect_ratio))
+        if height > 1080:
+            height = 1080
+            width = 1920
+        else:
+            width = min(root.winfo_screenwidth(), int(root.winfo_screenheight() * aspect_ratio))
+        root.geometry(f"{width}x{height}+{-10}+{-10}")
+
+        # Set text color based on OS
+        if platform.system() == "Windows":
+            self.textcolor = "white"
+        else:
+            self.textcolor = "black"
+
         # Unpack user settings
         user_path = os.path.join(os.getcwd(), "User")
         settings_path = os.path.join(user_path, "Settings.csv")
@@ -66,7 +85,6 @@ class MainApp:
         self.ind2 = self.CENTER + 150
         self.root = root
         self.root.title("SHERLOC Mineral Detection")
-        self.root.state('zoomed')
         self.root.config(bg="#2B2B2B")
         self.groups = {}
 
@@ -148,11 +166,11 @@ class MainApp:
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         # Scan type button handling
-        button1 = tk.Button(self.main_frame, text="Automatic Check", command=lambda: self.show_plots(1), bg="#424242", fg="white", font=("Arial", 20), width=30)
+        button1 = tk.Button(self.main_frame, text="Automatic Check", command=lambda: self.show_plots(1), bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         button1.grid(row=6, column=0, pady=0)
-        button2 = tk.Button(self.main_frame, text="Semi-Automatic Check", command=lambda: self.show_plots(2), bg="#424242", fg="white", font=("Arial", 20), width=30)
+        button2 = tk.Button(self.main_frame, text="Semi-Automatic Check", command=lambda: self.show_plots(2), bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         button2.grid(row=7, column=0, pady=0)
-        button3 = tk.Button(self.main_frame, text="Manual Check", command=lambda: self.show_plots(3), bg="#424242", fg="white", font=("Arial", 20), width=30)
+        button3 = tk.Button(self.main_frame, text="Manual Check", command=lambda: self.show_plots(3), bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         button3.grid(row=8, column=0, pady=0)            
         
         # File selection label
@@ -180,9 +198,9 @@ class MainApp:
             text_label.config(text="CURRENT FILE LOADED:\n" + self.file_selected)
 
         # Display the folder select button
-        button4 = tk.Button(self.main_frame, text="Visualize Results", command=self.select_results, bg="#424242", fg="white", font=("Arial", 20), width=30)
+        button4 = tk.Button(self.main_frame, text="Visualize Results", command=self.select_results, bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         button4.grid(row=2, column=0, pady=0)
-        button0 = tk.Button(self.main_frame, text="Select a Full Map File", command=select_file, bg=button0_color, fg="white", font=("Arial", 20), width=30)
+        button0 = tk.Button(self.main_frame, text="Select a Full Map File", command=select_file, bg=button0_color, fg=self.textcolor, font=("Arial", 20), width=30)
         button0.grid(row=4, column=0, pady=0)
 
     def show_plots(self, button_num):
@@ -257,7 +275,7 @@ class MainApp:
                 self._toggle_buttons(tk.NORMAL)
 
             else:
-                self.baseline_click()
+                baseline_click()
 
         def cosmic_click():
             """
@@ -327,7 +345,7 @@ class MainApp:
             self.cosmic.update_data(self.ramanshift, self.spectrum_stowed_arm_removed, self.cosmic_display_lower, self.cosmic_display_upper, self.cosmic_lower_index, self.cosmic_upper_index)
 
             if loop:
-                self.cosmic_click()
+                cosmic_click()
 
             else:
                 # Re-enable the buttons and clear entry tag
@@ -407,7 +425,7 @@ class MainApp:
             self._update_data()
 
             if loop:
-                self.peakfit_click(stored)
+                peakfit_click(stored)
 
             else:
                 # Re-enable the buttons and clear entry tag
@@ -440,7 +458,7 @@ class MainApp:
                 other_center = float(request_input("Other Peak:", lambda x: x.replace('.', '', 1).isdigit()))
 
                 # Perform a double peak fit, update the graphs and data
-                self.peak_params, other_params, self.FWHM, self.r_squared = Auto.perform_double_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.CENTER, other_center)
+                self.peak_params, other_params, self.FWHM, self.r_squared, cov = Auto.perform_double_peakfit(self.ramanshift, self.spectrum, self.ind1, self.ind2, self.CENTER, other_center)
                 self.SNR_stowed = Auto.calculate_SNR_stowed_arm(self.ramanshift, self.cur_noise, self.peak_params[0], self.CENTER)
                 self.SNR_silent = Auto.calculate_SNR_silent_region(self.ramanshift, self.spectrum, self.peak_params[0])
                 self.peakfit.update_data(self.ramanshift, self.spectrum, self.peak_params, self.ind1, self.ind2, other_params)
@@ -550,7 +568,7 @@ class MainApp:
             self._update_data()
         
             if loop:
-                self.double_peakfit_click(stored, other_params)
+                double_peakfit_click(stored, other_params)
             else:
                 self.entry_label.config(text="\n")
                 self._toggle_buttons(tk.NORMAL)
@@ -603,17 +621,17 @@ class MainApp:
         self.data_label.pack(side=tk.TOP)
 
         # Selection button handling
-        self.baseline_button = tk.Button(selection_frame, text="Baseline", command=baseline_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.baseline_button = tk.Button(selection_frame, text="Baseline", command=baseline_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.baseline_button.pack(side=tk.TOP, anchor='w')
-        self.cosmic_button = tk.Button(selection_frame, text="Cosmic Rays", command=cosmic_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.cosmic_button = tk.Button(selection_frame, text="Cosmic Rays", command=cosmic_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.cosmic_button.pack(side=tk.TOP, anchor='w')
-        self.peakfit_button = tk.Button(selection_frame, text="Peakfit", command=peakfit_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.peakfit_button = tk.Button(selection_frame, text="Peakfit", command=peakfit_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.peakfit_button.pack(side=tk.TOP, anchor='w')
-        self.double_peakfit_button = tk.Button(selection_frame, text="Double Peakfit", command=double_peakfit_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.double_peakfit_button = tk.Button(selection_frame, text="Double Peakfit", command=double_peakfit_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.double_peakfit_button.pack(side=tk.TOP, anchor='w')
-        self.approve_button = tk.Button(selection_frame, text="Approve", command=approve_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.approve_button = tk.Button(selection_frame, text="Approve", command=approve_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.approve_button.pack(side=tk.TOP, anchor='w')
-        self.deny_button = tk.Button(selection_frame, text="Deny", command=deny_click, bg="#424242", fg="white", font=("Arial", 10), width=10)
+        self.deny_button = tk.Button(selection_frame, text="Deny", command=deny_click, bg="#424242", fg=self.textcolor, font=("Arial", 10), width=10)
         self.deny_button.pack(side=tk.TOP, anchor='w')
 
         # Create labels and entry box below the selection buttons
@@ -890,7 +908,7 @@ class MainApp:
             group_label = tk.Label(label_frame, text=group_name, bg="#2B2B2B", fg="white", font=("Arial", 10))
             group_label.pack(side="left")
             label_frame.update()
-            remove_group_button = tk.Button(label_frame, text="-", command=lambda name=group_name: remove_group(name), bg="#B00020", fg="white", font=("Arial", 10), width=3)
+            remove_group_button = tk.Button(label_frame, text="-", command=lambda name=group_name: remove_group(name), bg="#B00020", fg=self.textcolor, font=("Arial", 10), width=3)
             group_label.pack(side="left", padx=228-group_label.winfo_width()/2)
             remove_group_button.pack(side="left", padx=228-group_label.winfo_width()/2)
 
@@ -903,14 +921,14 @@ class MainApp:
                 identifier_label = tk.Label(identifier_frame, text=identifier, bg="#2B2B2B", fg="white", font=("Arial", 10))
                 identifier_label.pack(side="left")
                 identifier_frame.update()
-                remove_identifier_button = tk.Button(identifier_frame, text="-", command=lambda name=group_name, index=i: remove_sample(name, index), bg="#B00020", fg="white", font=("Arial", 10), width=3)
+                remove_identifier_button = tk.Button(identifier_frame, text="-", command=lambda name=group_name, index=i: remove_sample(name, index), bg="#B00020", fg=self.textcolor, font=("Arial", 10), width=3)
                 identifier_label.pack(side="left", padx=228-identifier_label.winfo_width()/2)
                 remove_identifier_button.pack(side="left", padx=208-identifier_label.winfo_width()/2)
 
             # Individual sample add button
             sample_frame = tk.Frame(inner_frame, bg="#2B2B2B", width=300)
             sample_frame.pack(side="top", pady=5)
-            add_sample_button = tk.Button(sample_frame, text="+", command=lambda name=group_name: sample_popup(name), bg="#2F4562", fg="white", font=("Arial", 10), width=3)
+            add_sample_button = tk.Button(sample_frame, text="+", command=lambda name=group_name: sample_popup(name), bg="#2F4562", fg=self.textcolor, font=("Arial", 10), width=3)
             add_sample_button.pack(side="left", padx=225)
             blank_label = tk.Label(sample_frame, text="", bg="#2B2B2B", fg="white", font=("Arial", 10))
             blank_label.pack(side="left", padx=205)
@@ -919,11 +937,11 @@ class MainApp:
         top_pad = (40,0) if first else (0,0)
         
         # Place the add group button
-        group_button = tk.Button(inner_frame, text="Add Group", command=group_popup, bg="#424242", fg="white", font=("Arial", 20), width=30)
+        group_button = tk.Button(inner_frame, text="Add Group", command=group_popup, bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         group_button.pack(side="top", pady=top_pad, padx=228)
 
         # Place the export button
-        export_button = tk.Button(inner_frame, text="Export", command=self.export_visuals, bg="#424242", fg="white", font=("Arial", 20), width=30)
+        export_button = tk.Button(inner_frame, text="Export", command=self.export_visuals, bg="#424242", fg=self.textcolor, font=("Arial", 20), width=30)
         export_button.pack(side="top", pady=(5,0), padx=228)
 
     def export_visuals(self):
@@ -993,7 +1011,13 @@ class MainApp:
                 files = [f for f in files if not f.startswith('.')]
                 png_files = [file for file in files if file.lower().endswith('.png')]
                 sorted_png_files = sorted(png_files)
-                image_file = sorted_png_files[0][:6] + '~' + sorted_png_files[0][-5:] # Why do I have to do this?
+
+                # Do weird tilda thing if Windows for some reason
+                if platform.system() == "Windows":
+                    image_file = sorted_png_files[0][:6] + '~' + sorted_png_files[0][-5:]
+                else:
+                    image_file = sorted_png_files[0]
+
                 image_dir = os.path.join(loupe_data_path, image_file) # Take the first image alphabetically (this will be colored if available)
 
                 # Limit the spatial dataframe to just the x and y values and convert them to floats

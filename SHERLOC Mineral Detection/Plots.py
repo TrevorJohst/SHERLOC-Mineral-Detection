@@ -240,7 +240,10 @@ class PeakfitPlot(PlotObject):
             self.plot_area.plot(gauss_x, double_gauss, lw=1, label="Double Gaussian Fit", color="#B00020") 
 
         self.plot_area.set_xlim(lower, upper)
-        self.plot_area.set_ylim(-150, None)
+        if np.max(spectrum[ind]) > 700:
+            self.plot_area.set_ylim(-150, 700)
+        else:
+            self.plot_area.set_ylim(-150, None)
         self.plot_area.set_title(self.title, color="white")
         self.plot_area.tick_params(axis='x', colors='white')
         self.plot_area.tick_params(axis='y', colors='white')

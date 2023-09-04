@@ -1,11 +1,8 @@
 import numpy as np
-import tkinter as tk
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.cm as cm
-import matplotlib.image as mpimg
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import FuncFormatter
 import copy
 import os
 
@@ -14,14 +11,10 @@ from abc import ABC, abstractmethod
 class ResultObject(ABC):
     def __init__(self):
         # Create a figure and subplot for the plot
-        self.figure = plt.Figure(figsize=(5, 5), dpi=100, facecolor="#2B2B2B")
+        self.figure = plt.Figure(figsize=(5, 5), dpi=100)
         self.figure.subplots_adjust(bottom=0.15, left=0.15)
         self.result_area = self.figure.add_subplot(111)
-        self.result_area.set_facecolor("#363636")
-        self.result_area.set_title(self.title, color="white")
-        self.result_area.tick_params(axis='x', colors='white')
-        self.result_area.tick_params(axis='y', colors='white')
-        self.result_area.set_aspect('equal', adjustable='box')
+        self.result_area.set_title(self.title)
 
     def export(self, save_path):
         path = os.path.join(save_path, self.title)
@@ -39,48 +32,77 @@ class MetricPlot(ResultObject):
         self.medianprops = dict(color="black", linewidth=1.5)
         self.whiskerprops = dict(linewidth=1.5)
 
-    def update_boxplot(self, metric_name, metrics, metrics_labels):
+    def update_boxplot(self, metric_name, metrics, metrics_labels, dark=False):
         """
         Updates the metric plot to be a boxplot.
 
         metric_name: string name of the metric being passed in (ex: SNR, Center, Sigma, etc)
         metrics: numpy array of numpy arrays, each inner array is a flattened array of scan location metrics
         metrics_labels: array of string labels corresponding to each metric array (ex: Dourbes, Garde, etc)
+        dark: boolean flag of whether the boxplot should be light mode or dark mode defaults to False
         """
-        # Append an additional array to the end which includes all metric data
         metrics_copy = copy.deepcopy(metrics)
-        metrics_copy.append(np.ravel(metrics))
-        metrics_labels.append("All")
+        # Append an additional array to the end which includes all metric data
+        if len(metrics_labels) > 1:
+            metrics_copy.append(np.ravel(metrics))
+            metrics_labels.append("All")
+
+        textcolor = "black"
+
+        # Dark mode handling
+        if dark:
+            self.figure.set_facecolor("#2B2B2B")
+            self.result_area.set_facecolor("#363636")
+            self.result_area.set_title(self.title, color="white")
+            self.result_area.tick_params(axis='x', colors='white')
+            self.result_area.tick_params(axis='y', colors='white')
+
+            textcolor = "white"
 
         # Plotting
         self.result_area.clear()
 
         self.result_area.boxplot(metrics_copy, boxprops=self.boxprops, medianprops=self.medianprops, whiskerprops=self.whiskerprops, capprops=self.whiskerprops, patch_artist=True)
         self.title = f"{metric_name.upper()} BOXPLOT"
-        self.result_area.set_title(self.title, color="white")
-        self.result_area.set_ylabel(metric_name, color="white")
+        self.result_area.set_title(self.title, color=textcolor)
+        self.result_area.set_ylabel(metric_name, color=textcolor)
         self.result_area.set_xticks(np.arange(1, len(metrics_labels) + 1, 1), metrics_labels, rotation=45)
         self.result_area.grid(axis='y', alpha=0.5)
-        self.result_area.set_aspect('equal', adjustable='box')
         self.figure.tight_layout()
 
-    def update_histogram(self, metric_name, metrics, bins):
+    def update_histogram(self, metric_name, metrics, bins, dark=False):
         """
         Updates the metric plot to be a histogram.
 
         metric_name: string name of the metric being passed in (ex: SNR, Center, Sigma, etc)
         metrics: flattened array of data that will be included in the histogram
         bins: number of bins to display the histogram with
+        dark: boolean flag of whether the boxplot should be light mode or dark mode defaults to False
         """
+        textcolor = "black"
+        edgecolor = "white"
+
+        # Dark mode handling
+        if dark:
+            self.figure.set_facecolor("#2B2B2B")
+            self.result_area.set_facecolor("#363636")
+            self.result_area.set_title(self.title, color="white")
+            self.result_area.tick_params(axis='x', colors='white')
+            self.result_area.tick_params(axis='y', colors='white')
+
+            textcolor = "white"
+            edgecolor = "#363636"
+
         # Plotting
         self.result_area.clear()
         
-        self.result_area.hist(metrics, bins=bins, edgecolor="#363636", color=self.facecolor)
+        self.result_area.hist(metrics, bins=bins, edgecolor=edgecolor, color=self.facecolor)
         self.title = f"{metric_name.upper()} HISTOGRAM"
-        self.result_area.set_title(self.title, color="white")
-        self.result_area.set_ylabel("Count", color="white")
-        self.result_area.set_xlabel(metric_name, color="white")
-        self.result_area.set_aspect('equal', adjustable='box')
+        self.result_area.set_title(self.title, color=textcolor)
+        self.result_area.set_ylabel("Count", color=textcolor)
+        self.result_area.set_xlabel(metric_name, color=textcolor)
+        self.result_area.grid(axis='y', alpha=0.5)
+        self.result_area.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{int(x)}"))
         self.figure.tight_layout()
 
 class MetricHeatmap(ResultObject):
@@ -91,7 +113,7 @@ class MetricHeatmap(ResultObject):
 
         self.figure.subplots_adjust(bottom=0.15, left=0)
 
-    def update_data(self, heatmap_name, metric_name, metrics, approved, image_path, loc_array, linear=True):
+    def update_data(self, heatmap_name, metric_name, metrics, approved, image_path, loc_array, linear=True, dark=False):
         """
         Updates the heatmap with new data.
 
@@ -102,7 +124,20 @@ class MetricHeatmap(ResultObject):
         image_path: directory to the appropriate image in the form of a string
         loc_array: array of arrays, first array in the outer array is x coordinates and second is y coordinates
         linear: boolean value indicating if the heatmap should be linear or diverging
+        dark: boolean flag of whether the boxplot should be light mode or dark mode defaults to False
         """
+        textcolor = "black"
+
+        # Dark mode handling
+        if dark:
+            self.figure.set_facecolor("#2B2B2B")
+            self.result_area.set_facecolor("#363636")
+            self.result_area.set_title(self.title, color="white")
+            self.result_area.tick_params(axis='x', colors='white')
+            self.result_area.tick_params(axis='y', colors='white')
+
+            textcolor = "white"
+
         self.result_area.clear()
 
         # Set the desired minimum and maximum values for the colorbar scale
@@ -123,7 +158,7 @@ class MetricHeatmap(ResultObject):
         image = plt.imread(image_path)
         self.result_area.imshow(image, aspect='auto', cmap='gray')
         self.title = heatmap_name.upper()
-        self.result_area.set_title(self.title, color="white")
+        self.result_area.set_title(self.title, color=textcolor)
     
         # Get the color for each value from the colormap
         normalized = (metrics - colorbar_min) / (colorbar_max - colorbar_min)
@@ -131,8 +166,8 @@ class MetricHeatmap(ResultObject):
 
         # Create a colorbar for the circles' colormap
         colorbar = plt.colorbar(plt.cm.ScalarMappable(norm=plt.Normalize(vmin=colorbar_min, vmax=colorbar_max), cmap=cmap), ax=self.result_area)
-        colorbar.ax.tick_params(axis='both', colors='white')
-        colorbar.set_label(metric_name, color='white', rotation=270, labelpad=10)
+        colorbar.ax.tick_params(axis='both', colors=textcolor)
+        colorbar.set_label(metric_name, color=textcolor, rotation=270, labelpad=10)
 
         # Radius of each circle, adjusted such that they will fill take up the most visual space
         heatmap_radius = (np.max(x_values) - np.min(x_values)) / 18
@@ -181,19 +216,32 @@ class ScatterPlot(ResultObject):
         self.title = "SCATTERPLOT"
         super().__init__()
 
-    def update_data(self, metric_1, metric_2, metric_name_1, metric_name_2):
+    def update_data(self, metric_1, metric_2, metric_name_1, metric_name_2, dark=False):
         """
         metric_1, metric_2: flattened array of data that will be included in the scatterplot
         metric_name_1, metric_name_2: string name of the metric being passed in (ex: SNR, Center, Sigma, etc)
+        dark: boolean flag of whether the boxplot should be light mode or dark mode defaults to False
         """
+        textcolor = "black"
+
+        # Dark mode handling
+        if dark:
+            self.figure.set_facecolor("#2B2B2B")
+            self.result_area.set_facecolor("#363636")
+            self.result_area.set_title(self.title, color="white")
+            self.result_area.tick_params(axis='x', colors='white')
+            self.result_area.tick_params(axis='y', colors='white')
+
+            textcolor = "white"
+
         # Plotting
         self.result_area.clear()
 
-        self.result_area.scatter(metric_1, metric_2, color="white")
+        self.result_area.scatter(metric_1, metric_2, color=textcolor)
         self.title = f"{metric_name_1.upper()} VS {metric_name_2.upper()}"
-        self.result_area.set_title(self.title, color="white")
-        self.result_area.set_xlabel(metric_name_1, color="white")
-        self.result_area.set_ylabel(metric_name_2, color="white")
+        self.result_area.set_title(self.title, color=textcolor)
+        self.result_area.set_xlabel(metric_name_1, color=textcolor)
+        self.result_area.set_ylabel(metric_name_2, color=textcolor)
         self.result_area.xaxis.set_major_locator(MaxNLocator(integer=True))
         self.result_area.yaxis.set_major_locator(MaxNLocator(integer=True))
         self.result_area.set_aspect('equal', adjustable='box')
@@ -203,14 +251,27 @@ class SpatialPlot(ResultObject):
         self.title = "HEATMAP ACCURATE LOCATIONS"
         super().__init__()
 
-    def update_data(self, image_path, loc_array, scan_name):
+    def update_data(self, image_path, loc_array, scan_name, dark=False):
         """
         Updates the spatially accurate image plot.
 
         image_path: directory to the appropriate image in the form of a string
         loc_array: array of arrays, first array in the outer array is x coordinates and second is y coordinates
         scan_name: name of the scan (ex: sol_207-detail_1)
+        dark: boolean flag of whether the boxplot should be light mode or dark mode defaults to False
         """
+        textcolor = "black"
+
+        # Dark mode handling
+        if dark:
+            self.figure.set_facecolor("#2B2B2B")
+            self.result_area.set_facecolor("#363636")
+            self.result_area.set_title(self.title, color="white")
+            self.result_area.tick_params(axis='x', colors='white')
+            self.result_area.tick_params(axis='y', colors='white')
+
+            textcolor = "white"
+
         # Plotting
         self.result_area.clear()
 
@@ -222,7 +283,7 @@ class SpatialPlot(ResultObject):
         image = plt.imread(image_path)
         self.result_area.imshow(image, aspect='auto', cmap='gray')
         self.title = f"{scan_name.upper()} ACCURATE LOCATIONS"
-        self.result_area.set_title(self.title, color="white")
+        self.result_area.set_title(self.title, color=textcolor)
 
         # Radius of each circle, adjusted such that they will fill take up the most visual space
         heatmap_radius = (np.max(x_values) - np.min(x_values)) / 18
