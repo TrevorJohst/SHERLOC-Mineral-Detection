@@ -80,13 +80,23 @@ These settings impact the automatic baseline removal. Changing these can have a 
 samples. In semi-automatic and manual mode, the baseline can be further adjusted if needed.
 
 #### NOISE_SAMPLE:
-This field determines which stowed arm scan ( located in `User > Noise` ) should be used to calculate the stowed SNR. It is best to use the sample closest to the date of the scan you are analyzing to account for changes in SHERLOC over time. I have provided the stowed arm scans from sols 413 and 678 with all major cosmic rays removed. I have not provided the capability to remove rays from scans due to the rarity of stowed arm scans. If you wish to use one not provided, you could either try to use Loupe or email it to me and I will try to update the github.
+This field determines which stowed arm scan ( located in `User > Noise` ) should be used to calculate the stowed SNR. It is best to use the sample closest to the date of the scan you are analyzing to account for changes in SHERLOC over time. I have provided the stowed arm scans from sols 413 and 678 with all major cosmic rays removed. If you wish to use one not provided, you could either try to use Loupe to generate it or email it to me and I will try to update the github.
 
 
 <!-- USAGE -->
 ## Usage
 
+Below I will walk through the general workflow for using the application.
+
 ### Loupe
+This app is intended to be used in conjunction with <a href="https://github.com/nasa/Loupe">Loupe</a> by Kyle Uckert. After downloading and running his application from GitHub, you must start by opening a loupe file for your desired scan.
+
+![open_loupe](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/7a238d86-be6b-4c5e-a5d4-32831b5a78e8)
+
+Next you need to select the scan of interest, normalize the laser scan, and export it as a Full Map file. If you want to try using Uckert's automatic ray removal there is a tab dedicated to it, but we have found it safer to remove them manually in the program when needed.
+
+![export_loupe](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/7856db1d-eecd-417c-a01b-4a6c639859f2)
+
 
 ### Processing
 
