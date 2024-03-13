@@ -143,7 +143,15 @@ If there is another mineral within the vicinity of the one you are looking for, 
 When you finish a scan, either automatically or manually, a folder will be added to the results folder. This folder contains a .csv file storing all of the metrics for each approved and denied point. You can either analyze this data manually, or use the visualization to produce a set of graphs and visuals for your results.
 
 ### Visualizations
+The app can produce some graphs and heatmaps for results if you wish to analyze them quickly. To start with, on the main menu select visualize results. From the next window you can select add group to add a cluster of results. You can use this for whatever you like, but you may use it to group samples based on the rock they came from. Next if you select the blue + sign, you can add individual accepted files ( ex: `User > Results > Carbonate > sol_0489-detail_1_1 > sol_0489-detail_1_Approved.csv` )
 
+![image](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/75da5ff9-8a54-4d75-b3d5-efd10ff87018)
+
+When you are done adding groups and samples you can click the export button. After a moment you will be taken back to the main menu and a new folder will be created with your results. Below is an example of some results that can automatically produced. 
+
+![smd_results](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/55cf07e3-f855-4750-a834-a94b1ea5ef89)
+
+The program will take the first alphabetical file in the img folder ( located at `User > Data > sol_0489 > detail_1 > SrlcSpecSpec... > img` ), so if you have a colorized version of the image you can place it there and it will be used instead. If this is done, make sure the colorized version is aligned with the original grayscale version so plotted points remain accurate. 
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
