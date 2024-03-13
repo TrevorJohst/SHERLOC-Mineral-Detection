@@ -97,8 +97,50 @@ Next you need to select the scan of interest, normalize the laser scan, and expo
 
 ![export_loupe](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/7856db1d-eecd-417c-a01b-4a6c639859f2)
 
+After doing this, the full sample folder should be put in the Data folder. Ensure your directory looks similar to the one below so the program can navigate correctly. Each sol should be in the Data folder, and each scan within a sol should be within that sol's folder. 
+
+```
+User
+├── Data
+│   ├── sol_0489
+│   │   ├── detail_1
+│   │   │   ├── SrlcSpecSpec...
+│   │   │   │   ├── ROI
+│   │   │   │   │   ├── Full Map
+│   │   │   │   │   │   ├── Full Map_spectra_ZNZ_R1.csv
+│   │   │   │   │   │   └── ...
+│   │   │   │   │   └── ...
+│   │   │   │   └── ...
+│   │   │   └── ...
+│   │   ├── detail_2
+│   │   └── ...
+│   └── ...
+├── Noise
+├── Results
+├── Visuals
+└── Settings.csv
+```
 
 ### Processing
+Upon opening the application, you should select the full map button and navigate to the full map folder for your desired scan. 
+
+![smd_select](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/bb8623e2-6a1a-4130-b817-11dd41c31492)
+
+After this, you must select either automatic, semi-automatic, or manual. There is a tradeoff between accuracy and time with the more manual options, the latter two options will present either some or all data points for manual ajustment and approval. Below is an image of what you will see if you select a manual option. Statistics are in the upper right and buttons to adjust the baseline, remove cosmic rays, adjust the peakfit, change to a double peakfit, and approve or deny the point. 
+
+![Screenshot 2024-03-12 225506](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/d8184b15-3b86-4804-a52a-a0ea949287a2)
+
+For baseline adjustment you will be prompted for new sampling and smoothing values and the data will update live after both are provided. You can then approve or continue to update these values until you are happy with the baseline. 
+
+For cosmic ray removal, you begin by providing an estimate for the range of the cosmic ray. This will update the upper right window to the range provided. Then you can modify the location of the cosmic ray until you are satisfied with the selection. If you then approve it, the ray will be removed from the sample. Doing this can help improve baselines, or make identifying minerals easier.
+
+![Screenshot 2024-03-12 230857](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/acbe0c20-b09e-41db-8bd5-87c94e9fa8b9)
+
+If there is another mineral within the vicinity of the one you are looking for, the single gaussian curve may fit poorly to the data. You can then attempt to fit a double gaussian curve if you provide an estimate for the center of the other peak. This double curve can be adjusted manually just like the single curve fit if desired. 
+
+![image](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/0a0f65a9-b2df-4f2b-b023-18d0b65090e3)
+
+When you finish a scan, either automatically or manually, a folder will be added to the results folder. This folder contains a .csv file storing all of the metrics for each approved and denied point. You can either analyze this data manually, or use the visualization to produce a set of graphs and visuals for your results.
 
 ### Visualizations
 
