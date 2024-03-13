@@ -155,3 +155,6 @@ The program will take the first alphabetical file in the img folder ( located at
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
+
+This work was completed under a summer research position with the Bosak Lab at MIT, and was funded by the Ralph L. Evans Endowment Fund. I would acknowledge both of these groups and my research mentor Eva Scheller for their support throughout the experience.
+
