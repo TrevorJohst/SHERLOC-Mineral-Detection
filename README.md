@@ -147,7 +147,7 @@ The app can produce some graphs and heatmaps for results if you wish to analyze 
 
 ![image](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/75da5ff9-8a54-4d75-b3d5-efd10ff87018)
 
-When you are done adding groups and samples you can click the export button. After a moment you will be taken back to the main menu and a new folder will be created with your results. Below is an example of some results that can automatically produced. 
+When you are done adding groups and samples you can click the export button. After a moment you will be taken back to the main menu and a new folder will be created with your results. Below is an example of some results that can be automatically produced. 
 
 ![smd_results](https://github.com/TrevorJohst/SHERLOC-Mineral-Detection/assets/122303295/55cf07e3-f855-4750-a834-a94b1ea5ef89)
 
@@ -156,5 +156,5 @@ The program will take the first alphabetical file in the img folder ( located at
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-This work was completed under a summer research position with the Bosak Lab at MIT, and was funded by the Ralph L. Evans Endowment Fund. I would acknowledge both of these groups and my research mentor Eva Scheller for their support throughout the experience.
+This work was completed under a summer research position with the Bosak Lab at MIT, and was funded by the Ralph L. Evans Endowment Fund. I would like to acknowledge both of these groups and my research mentor Eva Scheller for their support throughout the experience.
 
